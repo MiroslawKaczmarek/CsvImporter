@@ -10,11 +10,17 @@ public class TimestampStringConverter {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         try {
             Date dt = sdf.parse(dateAsString);
-            Timestamp ti = new Timestamp(dt.getTime());
-            return ti;
+            return new Timestamp(dt.getTime());
         } catch (ParseException e) {
             return null;
         }
+    }
+
+    public static String dateAsString(Date date) {
+        if(date==null)
+            return "";
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        return sdf.format(date);
     }
 
     public static Timestamp convertToTimestamp(String value) {
