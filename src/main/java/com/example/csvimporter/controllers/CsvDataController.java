@@ -71,44 +71,14 @@ public class CsvDataController {
         return ResponseEntity.ok("" + numberOfImportedRecords + " records has been created.");
     }
 
-//    @GetMapping({"/csvdata/all"})
-//    public List<CsvDataDto> getAll() {
-//        return csvData2DtoConverter.convertList(csvDataRepository.findAll());
-//    }
-
-    @GetMapping({"/csvdata/clicksByDatasource"})
-    @ApiOperation(value = "method:getClicksByDatasource", notes="Get sum of clicks for csv_data records specified by datasource")
-    public ResponseEntity<?> getClicksByDatasource(@ApiParam(value="String (required)") @RequestParam String datasource) {
-        log.info("getClicksByDatasource: " + datasource);
-        Long clicks = csvDataRepository.countClicksByDatasource(datasource);
-        if(clicks==null)
-            clicks=0L;
-        return ResponseEntity.ok(""+clicks);
-    }
-
-    @GetMapping({"/csvdata/clicksByDatasourceAndDailyRange"})
-    @ApiOperation(value = "method:getClicksByDatasourceAndDailyRange", notes="Get sum of clicks for csv_data records specified by datasource and date range parameters")
-    public ResponseEntity<?> getClicksByDatasourceAndDailyRange(
-                   @ApiParam(value="String (required)") @RequestParam String datasource,
-                   @ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam(defaultValue="2019-12-31") @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyFrom,
-                   @ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam(defaultValue="2019-12-31") @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyTo) {
-        log.info("getClicksByDatasourceAndDailyRange: " + datasource + " / " + TimestampStringConverter.dateAsString(dailyFrom) + " / " +
-                TimestampStringConverter.dateAsString(dailyTo));
-        Long clicks = csvDataRepository.countClicksByDatasourceAndDaily(datasource, new Timestamp(dailyFrom.getTime()),
-                new Timestamp(dailyTo.getTime()));
-        if(clicks==null)
-            clicks=0L;
-        return ResponseEntity.ok(""+clicks);
-    }
-
     @PutMapping({"/csvdata/new"})
     @ApiOperation(value = "method:createNew", notes="Creates new record in csv_data")
     public ResponseEntity<?> createNew(
             @ApiParam(value="String (required)") @RequestParam String datasource,
             @ApiParam(value="String (required)") @RequestParam String campaign,
-            @ApiParam(value=DATE_IN_FORMAT + " (required)") @RequestParam(defaultValue="2019-12-31") @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily,
-            @ApiParam(value="Number (required)") @RequestParam(defaultValue="1") @NumberFormat(style = NumberFormat.Style.NUMBER, pattern="1") Long clicks,
-            @ApiParam(value="Number (required)") @RequestParam(defaultValue="1") @NumberFormat(style = NumberFormat.Style.NUMBER, pattern="1") Long impressions) {
+            @ApiParam(value=DATE_IN_FORMAT + " (required)") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily,
+            @ApiParam(value="Number (required)") @RequestParam @NumberFormat(style = NumberFormat.Style.NUMBER, pattern="1") Long clicks,
+            @ApiParam(value="Number (required)") @RequestParam @NumberFormat(style = NumberFormat.Style.NUMBER, pattern="1") Long impressions) {
         log.info("createNew: " + datasource);
         CsvData csvData = new CsvData(datasource, campaign, new Timestamp(daily.getTime()), clicks, impressions);
 
@@ -117,7 +87,7 @@ public class CsvDataController {
     }
 
     @GetMapping({"/csvdata/clicksThroughRateByDatasourceAndCampaign"})
-    @ApiOperation(value = "method:getClicksThroughRateByDatasourceAndCampaign", notes="Get CTR (sum of clicks divded by sum of impressions) for csv_data records specified by datasource and campaign parameters.")
+    @ApiOperation(value = "method:getClicksThroughRateByDatasourceAndCampaign", notes="Get CTR (sum of clicks divded by sum of impressions (%)) for csv_data records specified by datasource and campaign parameters.")
     public ResponseEntity<?> getClicksThroughRateByDatasourceAndCampaign(@ApiParam(value="String (required)") @RequestParam String datasource,
                                                                          @ApiParam(value="String (required)") @RequestParam String campaign) {
         log.info("getClicksThroughRateByDatasourceAndCampaign: " + datasource + " / " + campaign);
@@ -136,20 +106,20 @@ public class CsvDataController {
 
     @GetMapping({"/csvdata/byDay"})
     @ApiOperation(value = "method:getByDay", notes="Get csv_data records for specified date")
-    public ResponseEntity<?> getByDay(@ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam(defaultValue="2019-12-31") @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
+    public ResponseEntity<?> getByDay(@ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
         log.info("getByDay: " + TimestampStringConverter.dateAsString(daily));
         List<CsvData> csvData = csvDataRepository.findCsvDataByDaily(new Timestamp(daily.getTime()));
         return ResponseEntity.ok(csvData2DtoConverter.convertList(csvData));
     }
 
 
-    @GetMapping({"/csvdata/byOptionalParameters"})
-    @ApiOperation(value = "method:getAllByOptionalParameters", notes="Get csv_data records. Possible to define search criteria like: datasource, campaingn, daily (date in format yyyy-MM-dd)")
-    public List<CsvDataDto> getAllByOptionalParameters(
+    @GetMapping({"/csvdata/csvdataList"})
+    @ApiOperation(value = "method:getCsvDataList", notes="Get csv_data records for given criteria (result can be filtered through datasource, campaign and daily). All filter parameters are optional (not mandatory).")
+    public List<CsvDataDto> getCsvDataList(
            @ApiParam(value="String(optional)")             @RequestParam(required=false) String datasource,
            @ApiParam(value="String(optional)")             @RequestParam(required=false) String campaign,
-           @ApiParam(value=DATE_IN_FORMAT+" (optional)" )  @RequestParam(required=false, defaultValue="2019-12-31") @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
-        log.info("getAllByOptionalParameters: " + datasource + " / " + campaign + " / " + TimestampStringConverter.dateAsString(daily));
+           @ApiParam(value=DATE_IN_FORMAT+" (optional)" )  @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
+        log.info("getCsvDataList: " + datasource + " / " + campaign + " / " + TimestampStringConverter.dateAsString(daily));
         return csvData2DtoConverter.convertList(csvDataRepository.findAll(
                 CsvDataCriteriaBuilder.buildCriteriaByDatasourceCampaignDaily(datasource, campaign, daily)));
     }
@@ -162,14 +132,21 @@ public class CsvDataController {
         return ResponseEntity.ok().body("");
     }
 
-//    @GetMapping({"/csvdata/clicksByOptionalParameters"})
-//    public List<Long> getClicksByOptionalParameters(@RequestParam(required=false) String datasource,
-//                                                    @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyFrom,
-//                                                    @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyTo) {
-//        log.info("getClicksByOptionalParameters: " + datasource + " / " + TimestampStringConverter.dateAsString(dailyFrom) +
-//                " / " + TimestampStringConverter.dateAsString(dailyTo));
-//        return csvDataRepository.clicks(
-//                CsvDataCriteriaBuilder.buildCriteriaForCountSum(datasource, dailyFrom, dailyTo));
-//    }
+    @GetMapping({"/csvdata/sumOfClicks"})
+    @ApiOperation(value = "method:getSumOfClicks", notes="Count sum of click for given criteria (result can be filtered through datasource and dates range). All filter parameters are optional (not mandatory).")
+    public ResponseEntity<?> getSumOfClicks(
+            @ApiParam(value="String (optional)") @RequestParam(required=false) String datasource,
+            @ApiParam(value=DATE_IN_FORMAT+" (optional)") @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyFrom,
+            @ApiParam(value=DATE_IN_FORMAT+" (optional)") @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyTo) {
+        log.info("getSumOfClicks: " + datasource + " / " + TimestampStringConverter.dateAsString(dailyFrom) +
+                " / " + TimestampStringConverter.dateAsString(dailyTo));
+
+        Long clicks = csvDataRepository.sumOfClicks(
+                CsvDataCriteriaBuilder.buildCriteriaForCountSum(datasource, dailyFrom, dailyTo),
+                Long.class, "clicks");
+        if(clicks==null)
+            clicks=0L;
+        return ResponseEntity.ok(""+clicks);
+    }
 
 }

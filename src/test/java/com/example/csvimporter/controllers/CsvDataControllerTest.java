@@ -100,26 +100,26 @@ public class CsvDataControllerTest {
 
     @Transactional
     @Test
-    public void getClicksByDatasource() throws Exception {
+    public void getSumOfClicksAllCriteria() throws Exception {
         createData();
 
-        mockMvc.perform(get("/csvdata/clicksByDatasource?datasource=AAA")
+        mockMvc.perform(get("/csvdata/sumOfClicks?datasource=AAA&dailyFrom=2020-12-20&dailyTo=2020-12-22")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string("46"));
+                .andExpect(content().string("33"));
     }
 
     @Transactional
     @Test
-    public void getClicksByDatasourceAndDailyRange() throws Exception {
+    public void getSumOfClicksNoCriteria() throws Exception {
         createData();
 
-        mockMvc.perform(get("/csvdata/clicksByDatasourceAndDailyRange?datasource=AAA&dailyFrom=2020-12-21&dailyTo=2020-12-22")
+        mockMvc.perform(get("/csvdata/sumOfClicks")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string("23"));
+                .andExpect(content().string("54"));
     }
 
     @Transactional
@@ -157,24 +157,24 @@ public class CsvDataControllerTest {
                 .andExpect(jsonPath("$", hasSize(3)));
     }
 
-//    @Transactional
-//    @Test
-//    public void getAllByOptionalParameters1() throws Exception {
-//        createData();
-//        mockMvc.perform(get("/csvdata/byOptionalParameters?datasource=AAA")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .accept(MediaType.APPLICATION_JSON))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.[0].clicks").value("5"))
-//                .andExpect(jsonPath("$.[1].clicks").value("6"))
-//                .andExpect(jsonPath("$", hasSize(8)));
-//    }
+    @Transactional
+    @Test
+    public void getCsvDataList1() throws Exception {
+        createData();
+        mockMvc.perform(get("/csvdata/csvdataList?datasource=AAA")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.[0].clicks").value("5"))
+                .andExpect(jsonPath("$.[1].clicks").value("6"))
+                .andExpect(jsonPath("$", hasSize(8)));
+    }
 
     @Transactional
     @Test
-    public void getAllByOptionalParameters2() throws Exception {
+    public void getCsvDataList2() throws Exception {
         createData();
-        mockMvc.perform(get("/csvdata/byOptionalParameters?campaign=CCC&daily=2020-12-20")
+        mockMvc.perform(get("/csvdata/csvdataList?campaign=CCC&daily=2020-12-20")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

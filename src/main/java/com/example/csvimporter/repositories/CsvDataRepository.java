@@ -10,21 +10,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
-public interface CsvDataRepository extends JpaRepository<CsvData, Long> {
-//    Optional<CsvData> findById(Long id);
-
-    List<CsvData> findAll();
+public interface CsvDataRepository extends JpaRepository<CsvData, Long>, CsvDataRepositoryCustom {
     List<CsvData> findAll(Specification<CsvData> specification);
+
+    @Override
+    <S extends Number> S sumOfClicks(Specification<CsvData> spec, Class<S> resultType, String fieldName);
+
     List<CsvData> findCsvDataByDaily(Timestamp daily);
 
-    @Query("SELECT SUM(cd.clicks) FROM CsvData cd where cd.datasource=?1")
-    Long countClicksByDatasource(String datasource);
-
-    @Query("SELECT SUM(cd.clicks) FROM CsvData cd where cd.datasource=?1 and cd.daily between ?2 and ?3")
-    Long countClicksByDatasourceAndDaily(String datasource, Timestamp dateRangeFrom, Timestamp dateRangeTo);
+//    @Query("SELECT SUM(cd.clicks) FROM CsvData cd where cd.datasource=?1 and cd.daily between ?2 and ?3")
+//    Long countClicksByDatasourceAndDaily(String datasource, Timestamp dateRangeFrom, Timestamp dateRangeTo);
 
     @Query(nativeQuery = true, value = "SELECT CASE WHEN SUM(cd.clicks) IS NULL THEN 0 ELSE (SUM(cd.clicks) / SUM(cd.impressions)) END FROM csv_data cd where cd.datasource=?1 and cd.campaign=?2")
     Double countClicksThroughRateByDatasourceAndCampaign(String datasource, String campaing);
