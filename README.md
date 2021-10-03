@@ -15,7 +15,7 @@ CsvImporter - it is test project - Simple Data Warehouse (extract, transform, lo
 Project is deployed on heroku server here:
 https://fierce-shelf-64688.herokuapp.com/swagger-ui.html <br>
 Important - this heroku server(account) is free. In result all applications after 30 minutes of inactivity are stoped.
-So, for use given heroku server - please let me know (+48 664-959-442) - then I will wake up it :)  
+So, for use given heroku server - please call me - then I will wake up it :)  
 
 ## How to use - operating on API 
 On initial after you start the server open http://localhost:8080/swagger-ui.html (or if you want use existing server: https://fierce-shelf-64688.herokuapp.com/swagger-ui.html). <br>
