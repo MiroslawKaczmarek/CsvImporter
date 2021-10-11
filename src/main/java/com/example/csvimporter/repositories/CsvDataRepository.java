@@ -30,4 +30,15 @@ public interface CsvDataRepository extends JpaRepository<CsvData, Long>, CsvData
     @Modifying
     @Query(nativeQuery = true, value = "DELETE from csv_data")
     void deleteAll();
+
+    @Transactional
+    @Modifying
+    @Query(nativeQuery = true, value = "DELETE from csv_data where active=false")
+    void deleteNotActive();
+
+    @Transactional
+    @Modifying
+    @Query(nativeQuery = true, value = "UPDATE csv_data set active=true where active=false")
+    void activateNewCreatedRecords();
+
 }

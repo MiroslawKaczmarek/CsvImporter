@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @Slf4j
 @Service
 public class UploadFileValidator {
@@ -21,14 +19,6 @@ public class UploadFileValidator {
         //TODO - can do other validations like file extension, headder, etc
         return new UploadResultDto(true,"");
     }
-
-    public boolean validateNumberOfColumns(List<List<String>> csvStructure) {
-        for(List<String> row: csvStructure)
-            if(row.size()!=5)
-                return false;
-        return true;
-    }
-
 //    public UploadResultDto validateLevelTwo(List<List<String>> csvRecords) {
 //    }
 

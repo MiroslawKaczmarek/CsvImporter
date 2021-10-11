@@ -6,7 +6,7 @@ import com.example.csvimporter.models.CsvData;
 import com.example.csvimporter.repositories.CsvDataCriteriaBuilder;
 import com.example.csvimporter.repositories.CsvDataRepository;
 import com.example.csvimporter.services.CsvData2DtoConverter;
-import com.example.csvimporter.services.CsvDataConverter;
+import com.example.csvimporter.services.CsvDataService;
 import com.example.csvimporter.utils.TimestampStringConverter;
 import com.example.csvimporter.validators.UploadFileValidator;
 import io.swagger.annotations.ApiOperation;
@@ -41,39 +41,36 @@ public class CsvDataController {
 
     private final UploadFileValidator uploadFileValidator;
     private final CsvDataRepository csvDataRepository;
-    private final CsvDataConverter csvDataConverter;
     private final CsvData2DtoConverter csvData2DtoConverter;
+    private final CsvDataService csvDataService;
 
     public CsvDataController(UploadFileValidator uploadFileValidator, CsvDataRepository csvDataRepository,
-                             CsvDataConverter csvDataConverter, CsvData2DtoConverter csvData2DtoConverter) {
+                             CsvData2DtoConverter csvData2DtoConverter, CsvDataService csvDataService) {
         this.uploadFileValidator = uploadFileValidator;
         this.csvDataRepository = csvDataRepository;
-        this.csvDataConverter = csvDataConverter;
         this.csvData2DtoConverter = csvData2DtoConverter;
+        this.csvDataService = csvDataService;
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(path = {"/csvdata/uploadCsv"}, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ApiOperation(value = "method:uploadCsvFile", notes="Upload csv file and save content to database.")
-    public ResponseEntity<?> uploadCsvFile(@ApiParam(value="CSV file (required)")  @RequestParam MultipartFile file) {
+    public ResponseEntity<String> uploadCsvFile(@ApiParam(value="CSV file (required)")  @RequestParam MultipartFile file) {
         log.info("uploadCsvFile: " + file.getOriginalFilename());
         UploadResultDto resultOfFirstValidation = uploadFileValidator.validateLevelOne(file);
         if(!resultOfFirstValidation.isSuccess())
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(resultOfFirstValidation.getAdditionalInfo());
-        List<List<String>> csvStructure = csvDataConverter.convertFileToListOfStrings(file);
-        if(csvStructure == null)
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Problem with reading CSV file.");
-        if(!uploadFileValidator.validateNumberOfColumns(csvStructure))
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Each row in CSV file must contains 5 records");
+            return new ResponseEntity<String>(resultOfFirstValidation.getAdditionalInfo(), HttpStatus.BAD_REQUEST);
 
-        long numberOfImportedRecords = csvDataConverter.convertListOfStringToEntitiesAndSave(csvStructure);
-        log.info(numberOfImportedRecords + " records has been created.");
-        return ResponseEntity.ok("" + numberOfImportedRecords + " records has been created.");
+        CsvDataService.CsvDataImportResult importResult = csvDataService.saveData(file);
+        if(importResult.getImportedRecords()==0)
+            return new ResponseEntity<String>(importResult.getErrorReason(), HttpStatus.BAD_REQUEST);
+        log.info(importResult.getImportedRecords() + " records has been created.");
+        return new ResponseEntity<String>("" + importResult.getImportedRecords() + " records has been created.", HttpStatus.OK);
     }
 
     @PutMapping({"/csvdata/new"})
     @ApiOperation(value = "method:createNew", notes="Creates new record in csv_data")
-    public ResponseEntity<?> createNew(
+    public ResponseEntity<CsvData> createNew(
             @ApiParam(value="String (required)") @RequestParam String datasource,
             @ApiParam(value="String (required)") @RequestParam String campaign,
             @ApiParam(value=DATE_IN_FORMAT + " (required)") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily,
@@ -83,12 +80,12 @@ public class CsvDataController {
         CsvData csvData = new CsvData(datasource, campaign, new Timestamp(daily.getTime()), clicks, impressions);
 
         csvData = csvDataRepository.save(csvData);
-        return ResponseEntity.ok(csvData);
+        return new ResponseEntity<CsvData>(csvData, HttpStatus.OK);
     }
 
     @GetMapping({"/csvdata/clicksThroughRateByDatasourceAndCampaign"})
     @ApiOperation(value = "method:getClicksThroughRateByDatasourceAndCampaign", notes="Get CTR (sum of clicks divded by sum of impressions (%)) for csv_data records specified by datasource and campaign parameters.")
-    public ResponseEntity<?> getClicksThroughRateByDatasourceAndCampaign(@ApiParam(value="String (required)") @RequestParam String datasource,
+    public ResponseEntity<String> getClicksThroughRateByDatasourceAndCampaign(@ApiParam(value="String (required)") @RequestParam String datasource,
                                                                          @ApiParam(value="String (required)") @RequestParam String campaign) {
         log.info("getClicksThroughRateByDatasourceAndCampaign: " + datasource + " / " + campaign);
         Double ctr = csvDataRepository.countClicksThroughRateByDatasourceAndCampaign(datasource, campaign);
@@ -101,40 +98,41 @@ public class CsvDataController {
 
         DecimalFormat formatter = new DecimalFormat("#0.00", decimalFormatSeparator);
         String ctrAsString = formatter.format(100*ctr);
-        return ResponseEntity.ok(ctrAsString + "%");
+        return new ResponseEntity<String>(ctrAsString + "%", HttpStatus.OK);
     }
 
     @GetMapping({"/csvdata/byDay"})
     @ApiOperation(value = "method:getByDay", notes="Get csv_data records for specified date")
-    public ResponseEntity<?> getByDay(@ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
+    public ResponseEntity<List<CsvDataDto>> getByDay(@ApiParam(value=DATE_IN_FORMAT+" (required)") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
         log.info("getByDay: " + TimestampStringConverter.dateAsString(daily));
         List<CsvData> csvData = csvDataRepository.findCsvDataByDaily(new Timestamp(daily.getTime()));
-        return ResponseEntity.ok(csvData2DtoConverter.convertList(csvData));
+        return new ResponseEntity<List<CsvDataDto>>(csvData2DtoConverter.convertList(csvData), HttpStatus.OK);
     }
 
 
     @GetMapping({"/csvdata/csvdataList"})
     @ApiOperation(value = "method:getCsvDataList", notes="Get csv_data records for given criteria (result can be filtered through datasource, campaign and daily). All filter parameters are optional (not mandatory).")
-    public List<CsvDataDto> getCsvDataList(
+    public ResponseEntity<List<CsvDataDto>> getCsvDataList(
            @ApiParam(value="String(optional)")             @RequestParam(required=false) String datasource,
            @ApiParam(value="String(optional)")             @RequestParam(required=false) String campaign,
            @ApiParam(value=DATE_IN_FORMAT+" (optional)" )  @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date daily) {
         log.info("getCsvDataList: " + datasource + " / " + campaign + " / " + TimestampStringConverter.dateAsString(daily));
-        return csvData2DtoConverter.convertList(csvDataRepository.findAll(
+        List<CsvDataDto> result =  csvData2DtoConverter.convertList(csvDataRepository.findAll(
                 CsvDataCriteriaBuilder.buildCriteriaByDatasourceCampaignDaily(datasource, campaign, daily)));
+        return new ResponseEntity<List<CsvDataDto>>(result, HttpStatus.OK);
     }
 
     @DeleteMapping({"/csvdata/deleteAll"})
     @ApiOperation(value = "method:deleteAll", notes="Deletes all csv_data records.")
-    public ResponseEntity<?> deleteAll() {
+    public ResponseEntity<String> deleteAll() {
         log.info("deleteAll");
         csvDataRepository.deleteAll();
-        return ResponseEntity.ok().body("");
+        return new ResponseEntity<String>("", HttpStatus.OK);
     }
 
     @GetMapping({"/csvdata/sumOfClicks"})
     @ApiOperation(value = "method:getSumOfClicks", notes="Count sum of click for given criteria (result can be filtered through datasource and dates range). All filter parameters are optional (not mandatory).")
-    public ResponseEntity<?> getSumOfClicks(
+    public ResponseEntity<String> getSumOfClicks(
             @ApiParam(value="String (optional)") @RequestParam(required=false) String datasource,
             @ApiParam(value=DATE_IN_FORMAT+" (optional)") @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyFrom,
             @ApiParam(value=DATE_IN_FORMAT+" (optional)") @RequestParam(required=false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date dailyTo) {
@@ -146,7 +144,7 @@ public class CsvDataController {
                 Long.class, "clicks");
         if(clicks==null)
             clicks=0L;
-        return ResponseEntity.ok(""+clicks);
+        return new ResponseEntity<String>(""+clicks, HttpStatus.OK);
     }
 
 }

@@ -3,7 +3,7 @@ package com.example.csvimporter.controllers;
 import com.example.csvimporter.models.CsvData;
 import com.example.csvimporter.repositories.CsvDataRepository;
 import com.example.csvimporter.services.CsvData2DtoConverter;
-import com.example.csvimporter.services.CsvDataConverter;
+import com.example.csvimporter.services.CsvDataService;
 import com.example.csvimporter.utils.TimestampStringConverter;
 import com.example.csvimporter.validators.UploadFileValidator;
 import org.junit.After;
@@ -48,9 +48,6 @@ public class CsvDataControllerTest {
     private UploadFileValidator validator;
 
     @Inject
-    private CsvDataConverter csvDataConverter;
-
-    @Inject
     private CsvData2DtoConverter csvData2DtoConverter;
 
 
@@ -74,8 +71,9 @@ public class CsvDataControllerTest {
         byte[] payload = Files.readAllBytes(file.toPath());
         MockMultipartFile multiFile = new MockMultipartFile("file", correctFilename, "", payload);
 
-        CsvDataController controller = new CsvDataController(validator, repository, csvDataConverter, csvData2DtoConverter);
-        ResponseEntity response = controller.uploadCsvFile(multiFile);
+        CsvDataService csvDataService = new CsvDataService(repository);
+        CsvDataController controller = new CsvDataController(validator, repository, csvData2DtoConverter, csvDataService);
+        ResponseEntity<String> response = controller.uploadCsvFile(multiFile);
 
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
         String body = response.getBody() == null ? "" : response.getBody().toString();
@@ -90,12 +88,13 @@ public class CsvDataControllerTest {
         byte[] payload = Files.readAllBytes(file.toPath());
         MockMultipartFile multiFile = new MockMultipartFile("file", correctFilename, "", payload);
 
-        CsvDataController controller = new CsvDataController(validator, repository, csvDataConverter, csvData2DtoConverter);
-        ResponseEntity response = controller.uploadCsvFile(multiFile);
+        CsvDataService csvDataService = new CsvDataService(repository);
+        CsvDataController controller = new CsvDataController(validator, repository, csvData2DtoConverter,csvDataService);
+        ResponseEntity<String> response = controller.uploadCsvFile(multiFile);
 
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         String body = response.getBody() == null ? "" : response.getBody().toString();
-        Assertions.assertEquals("Each row in CSV file must contains 5 records", body);
+        Assertions.assertEquals("Row 1 not contain correct size of records. Expected 5 (was  2).", body);
     }
 
     @Transactional

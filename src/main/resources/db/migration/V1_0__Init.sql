@@ -7,5 +7,6 @@ CREATE TABLE csv_data
       campaign                      VARCHAR(255),
       daily                         TIMESTAMP,
       clicks                        BIGINT,
-      impressions                   BIGINT
+      impressions                   BIGINT,
+      active                        boolean
    );

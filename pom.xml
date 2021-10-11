@@ -70,11 +70,11 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
-<!--        <dependency>-->
-<!--            <groupId>com.opencsv</groupId>-->
-<!--            <artifactId>opencsv</artifactId>-->
-<!--            <version>4.1</version>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>4.1</version>
+        </dependency>
 
         <!-- swagger -->
         <!-- not upgraded to 3.0.0 because of problems with this version -->

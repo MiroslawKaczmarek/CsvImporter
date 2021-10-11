@@ -32,6 +32,7 @@ public class CsvData implements Serializable {
         this.daily = daily;
         this.clicks = clicks;
         this.impressions = impressions;
+        this.active = false;
     }
 
     @Id
@@ -40,19 +41,22 @@ public class CsvData implements Serializable {
     //@ApiModelProperty("Unique ID")
     private Long id;
 
-    @Column(name = "datasource", nullable = true)
+    @Column(name = "datasource")
     private String datasource;
 
-    @Column(name = "campaign", nullable = true)
+    @Column(name = "campaign")
     private String campaign;
 
-    @Column(name = "daily", nullable = true)
+    @Column(name = "daily")
     private Timestamp daily;
 
-    @Column(name = "clicks", nullable = true)
+    @Column(name = "clicks")
     private Long clicks;
 
-    @Column(name = "impressions", nullable = true)
+    @Column(name = "impressions")
     private Long impressions;
+
+    @Column(name = "active", nullable = false)
+    private Boolean active;
 
 }
